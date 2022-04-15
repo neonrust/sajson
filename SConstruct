@@ -66,7 +66,20 @@ def m64(env):
 
 env = Environment(
     ENV=os.environ,
-    CXXFLAGS=["-std=c++11", "-Wall", "-Werror", "-Wno-unused-private-field"],
+    CXXFLAGS=[
+	"-std=c++17",
+	"-Wno-unused-private-field",
+	"-Wextra",
+	"-Wall",
+	"-Wpedantic",
+	"-Werror",
+	"--pedantic-errors",
+	"-Wconversion",
+	"-Wmissing-declarations",
+	"-Wold-style-cast",
+	"-Wno-padded",
+	"-Wno-c99-extensions"
+	],
 )
 
 if sys.platform == "darwin":
