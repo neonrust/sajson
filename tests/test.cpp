@@ -7,8 +7,6 @@
 #include <random>
 
 using sajson::document;
-using sajson::literal;
-using sajson::string;
 using sajson::TYPE_ARRAY;
 using sajson::TYPE_DOUBLE;
 using sajson::TYPE_FALSE;
@@ -49,25 +47,25 @@ const T& self_ref(const T& v) {
 
 #define ABSTRACT_TEST(name)                                              \
     static void name##internal(                                          \
-        sajson::document (*parse)(const sajson::string&));               \
+        sajson::document (*parse)(std::string_view));                    \
     TEST(single_allocation_##name) {                                     \
-        name##internal([](const sajson::string& literal) {               \
+        name##internal([](std::string_viewliteral) {                     \
             return sajson::parse(sajson::single_allocation(), literal);  \
         });                                                              \
     }                                                                    \
     TEST(dynamic_allocation_##name) {                                    \
-        name##internal([](const sajson::string& literal) {               \
+        name##internal([](std::string_viewliteral) {                     \
             return sajson::parse(sajson::dynamic_allocation(), literal); \
         });                                                              \
     }                                                                    \
     TEST(bounded_allocation_##name) {                                    \
-        name##internal([](const sajson::string& literal) {               \
+        name##internal([](std::string_viewliteral) {                     \
             return sajson::parse(                                        \
                 sajson::bounded_allocation(ast_buffer, ast_buffer_size), \
                 literal);                                                \
         });                                                              \
     }                                                                    \
-    static void name##internal(sajson::document (*parse)(const sajson::string&))
+    static void name##internal(sajson::document (*parse)(std::string_view))
 
 ABSTRACT_TEST(empty_array) {
     const sajson::document& document = parse(literal("[]"));

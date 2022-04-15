@@ -49,7 +49,7 @@ void run_benchmark(size_t max_string_length, const char* filename) {
     for (size_t i = 0; i < N; ++i) {
         clock_t before_each = clock();
         sajson::parse(
-            AllocationStrategy(), sajson::string(buffer.data(), buffer.size()));
+            AllocationStrategy(), std::string_view(buffer.data(), buffer.size()));
         clock_t elapsed_each = clock() - before_each;
         minimum_each = std::min(minimum_each, elapsed_each);
     }
