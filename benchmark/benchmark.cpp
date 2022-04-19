@@ -27,7 +27,7 @@ void run_benchmark(size_t max_string_length, const char* filename) {
         perror("fseek failed");
         return;
     }
-    size_t length = ftell(file);
+    size_t length = static_cast<size_t>(ftell(file));
     if (fseek(file, 0, SEEK_SET)) {
         perror("fseek failed");
         return;
@@ -56,8 +56,8 @@ void run_benchmark(size_t max_string_length, const char* filename) {
 
     clock_t elapsed = clock() - start;
 
-    double average_elapsed_ms = 1000.0 * elapsed / CLOCKS_PER_SEC / N;
-    double minimum_elapsed_ms = 1000.0 * minimum_each / CLOCKS_PER_SEC;
+    double average_elapsed_ms = 1000.0 * static_cast<double>(elapsed) / CLOCKS_PER_SEC / N;
+    double minimum_elapsed_ms = 1000.0 * static_cast<double>(minimum_each) / CLOCKS_PER_SEC;
     printf(
         "%*s - %0.3f ms - %0.3f ms\n",
         static_cast<int>(max_string_length),
@@ -92,7 +92,7 @@ void run_all(size_t files_count, const char** files) {
 int main(int argc, const char** argv) {
     if (argc > 1) {
         // printf("\n=== SINGLE ALLOCATION ===\n\n");
-        run_all<sajson::single_allocation>(argc - 1, argv + 1);
+        run_all<sajson::single_allocation>(static_cast<size_t>(argc - 1), argv + 1);
         // printf("\n=== DYNAMIC ALLOCATION ===\n\n");
         // run_all<sajson::dynamic_allocation>(argc - 1, argv + 1);
     } else {

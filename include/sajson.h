@@ -27,11 +27,12 @@
 #include <algorithm>
 #include <assert.h>
 #include <cstdio>
-#include <limits.h>
-#include <limits>
-#include <math.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <numeric>
+//#include <limits.h>
+//#include <limits>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 
 #include <string>
@@ -233,7 +234,10 @@ private:
 
     struct layout {
         size_t refcount;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
         char data[];
+#pragma GCC diagnostic pop
     };
 
     layout* memory;
@@ -262,15 +266,6 @@ public:
     /// Allocates a copy of the given \ref string_view string and exposes a
     /// mutable view into it.  Throws std::bad_alloc if allocation fails.
     mutable_string_view(std::string_view s)
-        : length_(s.length())
-        , buffer(length_) {
-        data = buffer.get_data();
-        memcpy(data, s.data(), length_);
-    }
-
-    /// Allocates a copy of the given \ref string and exposes a mutable view
-    /// into it.  Throws std::bad_alloc if allocation fails.
-    mutable_string_view(const std::string& s)
         : length_(s.length())
         , buffer(length_) {
         data = buffer.get_data();
@@ -332,8 +327,7 @@ struct object_key_record {
 
     bool match(const char* object_data, std::string_view str) const {
         size_t length = key_end - key_start;
-        return length == str.length()
-            && 0 == memcmp(str.data(), object_data + key_start, length);
+        return length == str.length() && 0 == memcmp(str.data(), object_data + key_start, length);
     }
 };
 
@@ -410,6 +404,9 @@ inline void store(size_t* location, double value) {
 }
 } // namespace double_storage
 
+class object;
+class array;
+
 /// Represents a JSON value.  First, call get_type() to check its type,
 /// which determines which methods are available.
 ///
@@ -450,24 +447,37 @@ public:
         SAJSON_UNREACHABLE();
     }
 
-    bool is_boolean() const {
+    inline bool is_boolean() const {
         return value_tag == tag::false_ || value_tag == tag::true_;
     }
-    bool is_number() const {
-        return value_tag == tag::integer || value_tag == tag::double_;
+    inline bool is_double() const {
+        return value_tag == tag::double_;
     }
-    bool is_integer() const {
+    inline bool is_integer() const {
         return value_tag == tag::integer;
     }
-    bool is_string() const {
+    inline bool is_number() const {
+        return value_tag == tag::integer || value_tag == tag::double_;
+    }
+    inline bool is_string() const {
         return value_tag == tag::string;
     }
-    bool is_array() const {
+    inline bool is_array() const {
         return value_tag == tag::array;
     }
-    bool is_object() const {
+    inline bool is_object() const {
         return value_tag == tag::object;
     }
+    inline bool is_null() const {
+        return value_tag == tag::null;
+    }
+
+    // Returns an object-typed value.
+    // Only legal if get_type() is TYPE_OBJECT.
+    object as_object() const;
+    // Returns an array-typed value.
+    // Only legal if get_type() is TYPE_ARRAY.
+    array as_array() const;
 
     bool get_boolean_value() const {
         switch (value_tag) {
@@ -499,10 +509,6 @@ public:
             get_element_tag(element),
             payload + get_element_value(element),
             text);
-    }
-
-    inline value operator [] (size_t index) const {
-        return get_array_element(index);
     }
 
     /// Returns the nth key of an object.  Calling with an out-of-bound
@@ -540,7 +546,10 @@ public:
     }
 
     template<typename T>
-    T get_value(const T &default_value=T{}) const {
+    T get_value(const T &default_value={}) const {
+        if(is_null())
+            return default_value;
+
         if constexpr (std::is_integral_v<T>)
         {
             if(get_type() != TYPE_INTEGER)
@@ -565,14 +574,22 @@ public:
                 return default_value;
             return as_string();
         }
-        return {};
+        SAJSON_UNREACHABLE();
+    }
+
+    inline value operator [] (size_t index) const {
+        return get_array_element(index);
+    }
+
+    inline value operator [] (std::string_view key) const {
+        return get_value_of_key(key);
     }
 
     /// Given a string key, returns the index of the associated value if
     /// one exists.  Returns get_length() if there is no such key.
     /// Note: sajson sorts object keys, so the running time is O(lg N).
     /// Only legal if get_type() is TYPE_OBJECT
-    size_t find_object_key(std::string_view  key) const {
+    size_t find_object_key(std::string_view key) const {
         using namespace internal;
         assert_tag(tag::object);
         size_t length = get_length();
@@ -583,7 +600,7 @@ public:
             const object_key_record* i = std::lower_bound(
                 start, end, key, object_key_comparator(text));
             if (i != end && i->match(text, key)) {
-                return static_cast<size_t>(i - start);
+                return i - start;
             }
         } else {
             for (size_t i = 0; i < length; ++i) {
@@ -673,63 +690,18 @@ public:
         return text + payload[0];
     }
 
-    /// Returns a string's value as an std::string.
+#ifndef SAJSON_NO_STD_STRING
+    /// Returns a string's value as a std::string.
     /// Only legal if get_type() is TYPE_STRING.
     std::string as_string() const {
         assert_tag(tag::string);
         return std::string(text + payload[0], text + payload[1]);
     }
+#endif
 
     /// \cond INTERNAL
     const size_t* _internal_get_payload() const { return payload; }
     /// \endcond
-
-//    template<tag T>
-//    class Iterator
-//    {
-//    public:
-//        using iterator_category = std::forward_iterator_tag;
-//        using difference_type   = std::ptrdiff_t;
-//        using value_type        = value;
-//        using pointer           = value_type *;  // or also value_type*
-//        using reference         = value_type &;  // or also value_type&
-
-//        Iterator(const value &container, size_t idx) : container(container), index(idx) {}
-
-//        const value operator * () const
-//        {
-//            if constexpr (T == tag::array)
-//                return container.get_array_element(index);
-//            else if constexpr (T == tag::object)
-//                return container.get_object_key(index), container.get_object_value(index);
-//        }
-
-//    private:
-//        const value &container;
-//        size_t index;
-//    };
-
-//    Iterator<tag::array> array_begin() const
-//    {
-//        assert_tag(tag::array);
-//        return Iterator<tag::array>(this, 0);
-//    }
-//    Iterator<tag::array> array_end() const
-//    {
-//        assert_tag(tag::array);
-//        return Iterator<tag::array>(this, get_length());
-//    }
-
-//    Iterator<tag::array> items() const
-//    {
-//        assert_tag(tag::array);
-//        return Iterator<tag::array>(this, 0);
-//    }
-//    Iterator<tag::array> object_end() const
-//    {
-//        assert_tag(tag::array);
-//        return Iterator<tag::array>(this, get_length());
-//    }
 
 private:
     using tag = internal::tag;
@@ -741,7 +713,7 @@ private:
 
     void assert_tag([[maybe_unused]] tag expected) const { assert(expected == value_tag); }
 
-    void assert_tag_2([[maybe_unused]] tag e1, [[maybe_unused]] tag e2) const {
+    void assert_tag_2([[maybe_unused]] tag e1, [[maybe_unused]]  tag e2) const {
         assert(e1 == value_tag || e2 == value_tag);
     }
 
@@ -752,7 +724,194 @@ private:
     const char* const text;
 
     friend class document;
+    friend class object;
+    friend class array;
 };
+
+template<typename T>
+class const_iterator_base
+{
+public:
+    using iterator_t        = const_iterator_base<T>;
+
+    using iterator_category = std::random_access_iterator_tag;
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = value;
+    using pointer           = value_type *;  // or also value_type*
+    using reference         = value_type &;  // or also value_type&
+
+    bool operator == (const iterator_t &other) const {
+        return index == other.index; // TODO: also verify 'container' is the same
+    }
+
+    iterator_t operator ++ (int) { // post-increment
+        iterator_t copy(container, index);
+        index = advance_index(1);
+        return copy;
+    }
+    iterator_t operator ++ () { // pre-increment
+        index = advance_index(1);
+        return *this;
+    }
+    iterator_t operator -- (int) { // post-decrement
+        iterator_t copy(container, index);
+        index = advance_index(1);
+        return copy;
+    }
+    iterator_t &operator -- () { // pre-decrement
+        index = advance_index(-1);
+        return *this;
+    }
+    iterator_t operator + (difference_type offset) {
+        return iterator_t(container, advance_index(offset));
+    }
+    iterator_t operator - (difference_type offset) {
+        return this->operator + (-offset);
+    }
+    iterator_t &operator += (difference_type offset) {
+        index = iterator_t(offset);
+        return *this;
+    }
+    iterator_t &operator -= (difference_type offset) {
+        return this->operator += (-offset);
+    }
+
+protected:
+    const T &container;
+    size_t index;
+
+private:
+    friend class object;
+    friend class array;
+
+    const_iterator_base(const T &cntr, size_t index) : container(cntr), index(index) {}
+
+    size_t advance_index(difference_type offset) {
+        decltype(index) new_index;
+        if((offset < 0 and static_cast<difference_type>(index) > offset) or (offset > 0 and static_cast<size_t>(static_cast<difference_type>(index) + offset) <= container.get_length()))
+            new_index = static_cast<size_t>(static_cast<difference_type>(index) + offset);
+        else
+            new_index = container.get_length(); // just "invalidate" the iterator
+
+        return new_index;
+    }
+};
+
+class object : public value
+{
+public:
+    class const_iterator : public const_iterator_base<object>
+    {
+    public:
+        std::string_view get_key() const {
+            return container.get_object_key(index);
+        }
+        value_type get_value() const {
+            return container.get_object_value(index);
+        }
+        std::pair<std::string_view, value_type> operator * () const {
+            return { get_key(), get_value() };
+        }
+
+    private:
+        friend class object;
+        const_iterator(const object &obj, size_t index) :
+            const_iterator_base<object>(obj, index) {}
+    };
+
+    const_iterator begin() const {
+        return const_iterator(*this, 0);
+    }
+    const_iterator end() const {
+        return const_iterator(*this, get_length());
+    }
+
+
+private:
+    // hide non-object methods
+    using value::as_cstring;
+    using value::as_string;
+    using value::get_boolean_value;
+    using value::get_double_value;
+    using value::get_int53_value;
+    using value::get_integer_value;
+    using value::get_number_value;
+    using value::get_string_length;
+    using value::as_array;
+    using value::as_object;
+    using value::get_value;
+    using value::get_array_element;
+
+private:
+    using tag = internal::tag;
+
+    friend class value;
+
+    explicit object(const size_t* payload_, const char* text_)
+        : value(tag::object, payload_, text_) {}
+};
+
+class array : public value
+{
+public:
+    class const_iterator : public const_iterator_base<array>
+    {
+    public:
+        value_type operator * () const {
+            return container.get_array_element(index);
+        }
+
+    private:
+        friend class array;
+        const_iterator(const array &arr, size_t index) :
+            const_iterator_base<array>(arr, index) {}
+    };
+
+    const_iterator begin() const {
+        return const_iterator(*this, 0);
+    }
+    const_iterator end() const {
+        return const_iterator(*this, get_length());
+    }
+
+private:
+    // hide non-array methods
+    using value::as_cstring;
+    using value::as_string;
+    using value::get_boolean_value;
+    using value::get_double_value;
+    using value::get_int53_value;
+    using value::get_integer_value;
+    using value::get_number_value;
+    using value::get_string_length;
+    using value::as_array;
+    using value::as_object;
+    using value::get_value;
+    using value::get_value_of_key;
+    using value::get_object_value;
+    using value::find_object_key;
+    using value::get_object_key;
+
+private:
+    using tag = internal::tag;
+
+    friend class value;
+
+    explicit array(const size_t* payload_, const char* text_)
+        : value(tag::array, payload_, text_) {}
+};
+
+
+object value::as_object() const {
+    assert_tag(tag::object);
+    return object(payload, text);
+}
+
+array value::as_array() const {
+    assert_tag(tag::array);
+    return array(payload, text);
+}
+
 
 /// Error code indicating why parse failed.
 enum error {
@@ -886,7 +1045,7 @@ public:
         , error_arg(rhs.error_arg) {
         // Yikes... but strcpy is okay here because formatted_error is
         // guaranteed to be null-terminated.
-        std::strncpy(formatted_error_message, rhs.formatted_error_message, 128);
+        strcpy(formatted_error_message, rhs.formatted_error_message);
         // should rhs's fields be zeroed too?
     }
 
@@ -911,11 +1070,13 @@ public:
     /// failed.
     size_t get_error_column() const { return error_column; }
 
+#ifndef SAJSON_NO_STD_STRING
     /// If not is_valid(), returns a std::string indicating why the parse
     /// failed.
     std::string get_error_message_as_string() const {
         return formatted_error_message;
     }
+#endif
 
     /// If not is_valid(), returns a null-terminated C string indicating why the
     /// parse failed.
@@ -1060,7 +1221,7 @@ public:
 
         void reset(size_t new_top) { stack_top = stack_bottom + new_top; }
 
-        size_t get_size() { return static_cast<size_t>(stack_top - stack_bottom); }
+        size_t get_size() { return stack_top - stack_bottom; }
 
         size_t* get_top() { return stack_top; }
 
@@ -1124,7 +1285,7 @@ public:
             return stack_head(structure);
         }
 
-        size_t get_write_offset() { return static_cast<size_t>(structure_end - write_cursor); }
+        size_t get_write_offset() { return structure_end - write_cursor; }
 
         size_t* get_write_pointer_of(size_t v) { return structure_end - v; }
 
@@ -1254,7 +1415,7 @@ public:
 
         void reset(size_t new_top) { stack_top = stack_bottom + new_top; }
 
-        size_t get_size() { return static_cast<size_t>(stack_top - stack_bottom); }
+        size_t get_size() { return stack_top - stack_bottom; }
 
         size_t* get_top() { return stack_top; }
 
@@ -1284,8 +1445,8 @@ public:
                 return true;
             }
 
-            size_t current_size = static_cast<size_t>(stack_top - stack_bottom);
-            size_t old_capacity = static_cast<size_t>(stack_limit - stack_bottom);
+            size_t current_size = stack_top - stack_bottom;
+            size_t old_capacity = stack_limit - stack_bottom;
             size_t new_capacity = old_capacity * 2;
             while (new_capacity < amount + current_size) {
                 new_capacity *= 2;
@@ -1350,7 +1511,7 @@ public:
             return stack_head(initial_stack_capacity, success);
         }
 
-        size_t get_write_offset() { return static_cast<size_t>(ast_buffer_top - ast_write_head); }
+        size_t get_write_offset() { return ast_buffer_top - ast_write_head; }
 
         size_t* get_write_pointer_of(size_t v) { return ast_buffer_top - v; }
 
@@ -1382,9 +1543,9 @@ public:
                                   ast_write_head - ast_buffer_bottom))) {
                 return true;
             }
-            size_t current_capacity = static_cast<size_t>(ast_buffer_top - ast_buffer_bottom);
+            size_t current_capacity = ast_buffer_top - ast_buffer_bottom;
 
-            size_t current_size = static_cast<size_t>(ast_buffer_top - ast_write_head);
+            size_t current_size = ast_buffer_top - ast_write_head;
             size_t new_capacity = current_capacity * 2;
             while (new_capacity < amount + current_size) {
                 new_capacity *= 2;
@@ -1501,7 +1662,7 @@ public:
         }
 
         size_t get_size() {
-            return static_cast<size_t>(source_allocator->stack_top - source_allocator->structure);
+            return source_allocator->stack_top - source_allocator->structure;
         }
 
         size_t* get_top() { return source_allocator->stack_top; }
@@ -1550,7 +1711,7 @@ public:
             return stack_head(this);
         }
 
-        size_t get_write_offset() { return static_cast<size_t>(structure_end - write_cursor); }
+        size_t get_write_offset() { return structure_end - write_cursor; }
 
         size_t* get_write_pointer_of(size_t v) { return structure_end - v; }
 
@@ -2113,8 +2274,8 @@ private:
         using internal::tag;
 
         // Assume 32-bit, two's complement integers.
-        static constexpr unsigned RISKY = INT_MAX / 10u;
-        unsigned max_digit_after_risky = INT_MAX % 10u;
+        static constexpr unsigned RISKY = std::numeric_limits<int>::max() / 10u;
+        unsigned max_digit_after_risky = std::numeric_limits<int>::max() % 10u;
 
         bool negative = false;
         if ('-' == *p) {
@@ -2141,7 +2302,7 @@ private:
                     make_error(p, ERROR_UNEXPECTED_END), tag::null);
             }
         } else {
-            unsigned char c = static_cast<unsigned char>(*p);
+            unsigned char c = *p;
             if (c < '0' || c > '9') {
                 return std::make_pair(
                     make_error(p, ERROR_INVALID_NUMBER), tag::null);
@@ -2167,7 +2328,7 @@ private:
                     u = 10 * u + digit;
                 }
 
-                c = static_cast<unsigned char>(*p);
+                c = *p;
             } while (c >= '0' && c <= '9');
         }
 
@@ -2247,11 +2408,11 @@ private:
             for (;;) {
                 // c guaranteed to be between '0' and '9', inclusive
                 unsigned char digit = static_cast<unsigned char>(c - '0');
-                if (exp > (INT_MAX - digit) / 10) {
+                if (exp > (std::numeric_limits<int>::max() - digit) / 10) {
                     // The exponent overflowed.  Keep parsing, but
                     // it will definitely be out of range when
                     // pow10 is called.
-                    exp = INT_MAX;
+                    exp = std::numeric_limits<int>::max();
                 } else {
                     exp = 10 * exp + digit;
                 }
@@ -2268,7 +2429,7 @@ private:
                 }
             }
             static_assert(
-                -INT_MAX >= INT_MIN, "exp can be negated without loss or UB");
+                -std::numeric_limits<int>::max() >= std::numeric_limits<int>::min(), "exp can be negated without loss or UB");
             exponent += (negativeExponent ? -exp : exp);
         }
 
@@ -2312,7 +2473,7 @@ private:
     bool install_array(size_t* array_base, size_t* array_end) {
         using namespace sajson::internal;
 
-        const size_t length = static_cast<size_t>(array_end - array_base);
+        const size_t length = array_end - array_base;
         bool success;
         size_t* const new_base = allocator.reserve(length + 1, &success);
         if (SAJSON_UNLIKELY(!success)) {
@@ -2326,7 +2487,7 @@ private:
             tag element_type = get_element_tag(element);
             size_t element_value = get_element_value(element);
             size_t* element_ptr = structure_end - element_value;
-            *--out = make_element(element_type, static_cast<size_t>(element_ptr - new_base));
+            *--out = make_element(element_type, element_ptr - new_base);
         }
         *--out = length;
         return true;
@@ -2336,7 +2497,7 @@ private:
         using namespace internal;
 
         assert((object_end - object_base) % 3 == 0);
-        const size_t length_times_3 = static_cast<size_t>(object_end - object_base);
+        const size_t length_times_3 = object_end - object_base;
         const size_t length = length_times_3 / 3;
         if (SAJSON_UNLIKELY(should_binary_search(length))) {
             std::sort(
@@ -2360,7 +2521,7 @@ private:
             size_t element_value = get_element_value(element);
             size_t* element_ptr = structure_end - element_value;
 
-            *--out = make_element(element_type, static_cast<size_t>(element_ptr - new_base));
+            *--out = make_element(element_type, element_ptr - new_base);
             *--out = *--object_end;
             *--out = *--object_end;
         }
@@ -2372,7 +2533,7 @@ private:
         using namespace internal;
 
         ++p; // "
-        long start = std::distance(p, input.get_data());
+        size_t start = p - input.get_data();
         char* input_end_local = input_end;
         while (input_end_local - p >= 4) {
             if (!is_plain_string_character(p[0])) {
@@ -2405,8 +2566,8 @@ private:
         }
     found:
         if (SAJSON_LIKELY(*p == '"')) {
-            tag[0] = static_cast<size_t>(start);
-            tag[1] = static_cast<size_t>(std::distance(p, input.get_data()));
+            tag[0] = start;
+            tag[1] = p - input.get_data();
             *p = '\0';
             return p + 1;
         }
@@ -2415,7 +2576,7 @@ private:
             return make_error(p, ERROR_ILLEGAL_CODEPOINT, static_cast<int>(*p));
         } else {
             // backslash or >0x7f
-            return parse_string_slow(p, tag, static_cast<size_t>(start));
+            return parse_string_slow(p, tag, start);
         }
     }
 
@@ -2423,7 +2584,7 @@ private:
         unsigned v = 0;
         int i = 4;
         while (i--) {
-            unsigned char c = static_cast<unsigned char>(*p++);
+            unsigned char c = *p++;
             if (c >= '0' && c <= '9') {
                 c -= '0';
             } else if (c >= 'a' && c <= 'f') {
@@ -2476,7 +2637,7 @@ private:
             switch (*p) {
             case '"':
                 tag[0] = start;
-                tag[1] = static_cast<size_t>(std::distance(end, input.get_data()));
+                tag[1] = end - input.get_data();
                 *end = '\0';
                 return p + 1;
 
@@ -2560,58 +2721,58 @@ private:
 
             default:
                 // validate UTF-8
-                unsigned char c0 = static_cast<unsigned char>(p[0]);
+                unsigned char c0 = p[0];
                 if (c0 < 128) {
                     *end++ = *p++;
                 } else if (c0 < 224) {
                     if (SAJSON_UNLIKELY(!has_remaining_characters(p, 2))) {
                         return unexpected_end(p);
                     }
-                    unsigned char c1 = static_cast<unsigned char>(p[1]);
+                    unsigned char c1 = p[1];
                     if (c1 < 128 || c1 >= 192) {
                         return make_error(p + 1, ERROR_INVALID_UTF8);
                     }
-                    end[0] = static_cast<char>(c0);
-                    end[1] = static_cast<char>(c1);
+                    end[0] = c0;
+                    end[1] = c1;
                     end += 2;
                     p += 2;
                 } else if (c0 < 240) {
                     if (SAJSON_UNLIKELY(!has_remaining_characters(p, 3))) {
                         return unexpected_end(p);
                     }
-                    unsigned char c1 = static_cast<unsigned char>(p[1]);
+                    unsigned char c1 = p[1];
                     if (c1 < 128 || c1 >= 192) {
                         return make_error(p + 1, ERROR_INVALID_UTF8);
                     }
-                    unsigned char c2 = static_cast<unsigned char>(p[2]);
+                    unsigned char c2 = p[2];
                     if (c2 < 128 || c2 >= 192) {
                         return make_error(p + 2, ERROR_INVALID_UTF8);
                     }
-                    end[0] = static_cast<char>(c0);
-                    end[1] = static_cast<char>(c1);
-                    end[2] = static_cast<char>(c2);
+                    end[0] = c0;
+                    end[1] = c1;
+                    end[2] = c2;
                     end += 3;
                     p += 3;
                 } else if (c0 < 248) {
                     if (SAJSON_UNLIKELY(!has_remaining_characters(p, 4))) {
                         return unexpected_end(p);
                     }
-                    unsigned char c1 = static_cast<unsigned char>(p[1]);
+                    unsigned char c1 = p[1];
                     if (c1 < 128 || c1 >= 192) {
                         return make_error(p + 1, ERROR_INVALID_UTF8);
                     }
-                    unsigned char c2 = static_cast<unsigned char>(p[2]);
+                    unsigned char c2 = p[2];
                     if (c2 < 128 || c2 >= 192) {
                         return make_error(p + 2, ERROR_INVALID_UTF8);
                     }
-                    unsigned char c3 = static_cast<unsigned char>(p[3]);
+                    unsigned char c3 = p[3];
                     if (c3 < 128 || c3 >= 192) {
                         return make_error(p + 3, ERROR_INVALID_UTF8);
                     }
-                    end[0] = static_cast<char>(c0);
-                    end[1] = static_cast<char>(c1);
-                    end[2] = static_cast<char>(c2);
-                    end[3] = static_cast<char>(c3);
+                    end[0] = c0;
+                    end[1] = c1;
+                    end[2] = c2;
+                    end[3] = c3;
                     end += 4;
                     p += 4;
                 } else {

@@ -39,7 +39,7 @@ struct jsonstats {
     double total_number_value;
 };
 
-void traverse(jsonstats& stats, const sajson::value& node) {
+static void traverse(jsonstats& stats, const sajson::value& node) {
     using namespace sajson;
 
     switch (node.get_type()) {
@@ -92,13 +92,17 @@ void traverse(jsonstats& stats, const sajson::value& node) {
 }
 
 int main(int argc, char** argv) {
+    if(argc < 2) {
+        fprintf(stderr, "Must specify JSON filname\n");
+        return 1;
+    }
     FILE* file = fopen(argv[1], "rb");
     if (!file) {
         fprintf(stderr, "Failed to open file\n");
         return 1;
     }
     fseek(file, 0, SEEK_END);
-    size_t length = ftell(file);
+    size_t length = static_cast<size_t>(ftell(file));
     fseek(file, 0, SEEK_SET);
 
     char* buffer = new char[length];
@@ -121,14 +125,13 @@ int main(int argc, char** argv) {
     jsonstats stats;
     traverse(stats, document.get_root());
 
-    printf("object count: %d\n", (int)stats.object_count);
-    printf("array count: %d\n", (int)stats.array_count);
-    printf("bool count: %d\n", (int)stats.true_count + (int)stats.false_count);
-    printf("number count: %d\n", (int)stats.number_count);
-    printf("string count: %d\n", (int)stats.string_count);
-    printf("null count: %d\n", (int)stats.null_count);
+    printf("object count: %d\n", static_cast<int>(stats.object_count));
+    printf("array count: %d\n", static_cast<int>(stats.array_count));
+    printf("bool count: %d\n", static_cast<int>(stats.true_count) + static_cast<int>(stats.false_count));
+    printf("number count: %d\n", static_cast<int>(stats.number_count));
+    printf("string count: %d\n", static_cast<int>(stats.string_count));
+    printf("null count: %d\n", static_cast<int>(stats.null_count));
     
-    fclose(file);
     delete[] buffer;
     return 0;
 }
