@@ -28,8 +28,6 @@
 #include <assert.h>
 #include <cstdio>
 #include <numeric>
-//#include <limits.h>
-//#include <limits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -742,6 +740,10 @@ public:
 
     bool operator == (const iterator_t &other) const {
         return index == other.index; // TODO: also verify 'container' is the same
+    }
+
+    bool operator != (const iterator_t &other) const {
+        return index != other.index; // TODO: also verify 'container' is the same
     }
 
     iterator_t operator ++ (int) { // post-increment
