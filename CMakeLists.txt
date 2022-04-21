@@ -4,6 +4,22 @@ project(sajson
 	DESCRIPTION "sajson"
 	LANGUAGES CXX
 )
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_compile_options(
+	-Wextra
+	-Wall
+	-Wpedantic
+	-Werror
+	--pedantic-errors
+	-Wconversion
+	-Wmissing-declarations
+	-Wold-style-cast
+	-Wno-padded
+)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 option(SAJSON_BUILD_BENCHMARKS "Build benchmarks. Default=ON" ON)

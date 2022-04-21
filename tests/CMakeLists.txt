@@ -1,15 +1,3 @@
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-add_compile_options(
-	-Wextra
-	-Wall
-	-Wpedantic
-	-Werror
-	--pedantic-errors
-	-Wconversion
-	-Wmissing-declarations
-	-Wold-style-cast
-	-Wno-padded
 )
 
 set(sources
