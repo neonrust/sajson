@@ -1,43 +1,18 @@
+include(FetchContent)
+
+# UnitTest++ code is a bit lax on conversions
+add_compile_options(-Wno-conversion)
+
+FetchContent_Declare(utpp
+	GIT_REPOSITORY git@github.com:unittest-cpp/unittest-cpp.git
+	GIT_TAG        v2.0.0
 )
+set(UTPP_INCLUDE_TESTS_IN_BUILD OFF CACHE INTERNAL "Turn off UTPP tests")
+FetchContent_MakeAvailable(utpp)
 
 set(sources
 	test.cpp
-
-	../third-party/UnitTest++/src/AssertException.cpp
-	../third-party/UnitTest++/src/Checks.cpp
-	../third-party/UnitTest++/src/CurrentTest.cpp
-	../third-party/UnitTest++/src/DeferredTestReporter.cpp
-	../third-party/UnitTest++/src/DeferredTestResult.cpp
-	../third-party/UnitTest++/src/MemoryOutStream.cpp
-	../third-party/UnitTest++/src/ReportAssert.cpp
-	../third-party/UnitTest++/src/Test.cpp
-	../third-party/UnitTest++/src/TestDetails.cpp
-	../third-party/UnitTest++/src/TestList.cpp
-	../third-party/UnitTest++/src/TestReporter.cpp
-	../third-party/UnitTest++/src/TestReporterStdout.cpp
-	../third-party/UnitTest++/src/TestResults.cpp
-	../third-party/UnitTest++/src/TestRunner.cpp
-	../third-party/UnitTest++/src/TimeConstraint.cpp
-	../third-party/UnitTest++/src/XmlTestReporter.cpp
 )
-# add platform-specific files
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|Darwin")
-	list(APPEND sources
-		../third-party/UnitTest++/src/Posix/SignalTranslator.cpp
-		../third-party/UnitTest++/src/Posix/TimeHelpers.cpp
-	)
-    set_source_files_properties(../third-party/UnitTest++/src/Posix/TimeHelpers.cpp PROPERTIES COMPILE_FLAGS -Wno-conversion)
-elseif(${CMAKE_SYSTEM_NAME} EQUAL "Windows")
-	list(APPEND sources
-		../third-party/UnitTest++/src/Win32/TimeHelpers.cpp
-	)
-    set_source_files_properties(../third-party/UnitTest++/src/Win32/TimeHelpers.cpp PROPERTIES COMPILE_FLAGS -Wno-conversion)
-else()
-	message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
-endif()
-
-set_source_files_properties(../third-party/UnitTest++/src/TestRunner.cpp PROPERTIES COMPILE_FLAGS -Wno-conversion)
-set_source_files_properties(../third-party/UnitTest++/src/ReportAssert.cpp PROPERTIES COMPILE_FLAGS -Wno-missing-declarations)
 
 
 add_executable(tests ${sources})
@@ -45,7 +20,12 @@ add_executable(tests ${sources})
 target_include_directories(tests
 	PRIVATE
 	../include/
-	../third-party/UnitTest++/src/
+	${utpp_SOURCE_DIR}/UnitTest++/
+)
+
+target_link_libraries(tests
+	PRIVATE
+	UnitTest++
 )
 
 set_target_properties(tests PROPERTIES
