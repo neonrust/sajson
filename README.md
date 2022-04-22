@@ -36,6 +36,21 @@ convinced to add an option for requiring null termination.)
 * Small code size -- suitable for Emscripten.
 * Has been fuzzed with American Fuzzy Lop.
 
+## Changes in this fork
+
+Some API-breaking changes were made along with a bunch of smaller ones.
+
+Here's a summary:
+
+* Replaced `scons` with `cmake`. UnitTest++ removed from repository; now built using `FetchContent`.
+  Tests, benchmarks and examples can be disabled using options (see top-level `CMakeLists.txt`).
+* Replaced `sajson::string` and `sajson::literal` with `std::string_view`.
+  Thus, C++17 is now required, as well as `std::string` (what compilers don't include it?).
+* Added `array` and `object` specializations of `value`.
+  These also have iterators (range-for can be used).
+* Now compiles with the strictest possible settings (except `-Wpadded`).
+
+
 ## AST Structure
 
 The parsed AST's size is computed as such:
