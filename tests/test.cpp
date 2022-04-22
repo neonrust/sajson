@@ -1126,6 +1126,7 @@ SUITE(typed_values) {
 
     TEST(array_indexing) {
         const auto& document = sajson::parse(sajson::single_allocation(), "[42]");
+        assert(success(document));
         const value& root = document.get_root();
         const auto arr = root.as_array();
         CHECK_EQUAL(arr[0].get_value<int>(), 42);
@@ -1133,6 +1134,7 @@ SUITE(typed_values) {
 
     TEST(object_indexing) {
         const auto& document = sajson::parse(sajson::single_allocation(), "{\"a\":42}");
+        assert(success(document));
         const value& root = document.get_root();
         const auto obj = root.as_object();
         CHECK_EQUAL(obj["a"].get_value<int>(), 42);
@@ -1157,7 +1159,6 @@ SUITE(typed_values) {
         assert(success(document));
         const value& root = document.get_root();
         const auto obj = root.as_object();
-        // range-for will only yield the values (not the keys)
         for(const auto &[key, value]: obj)
         {
             CHECK(value.is_integer());
@@ -1167,15 +1168,15 @@ SUITE(typed_values) {
 }
 
 SUITE(defaulted_value) {
-    TEST(object) {
-        const auto& document = sajson::parse(sajson::single_allocation(), "[42]");
+    TEST(get_value) {
+        const auto& document = sajson::parse(sajson::single_allocation(), "{\"a\":42,\"b\":13}");
         assert(success(document));
         const value& root = document.get_root();
-        int value = root.get_array_element(0).get_value<int>(42);
+        int value = root["a"].get_value<int>(99);
         CHECK_EQUAL(value, 42);
+        value = root["does-not-exist"].get_value<int>(99);
+        CHECK_EQUAL(value, 99);
     }
 }
-
-// TODO: operator []
 
 int main() { return UnitTest::RunAllTests(); }
