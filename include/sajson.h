@@ -545,36 +545,27 @@ public:
 
     template<typename T=void>
     T as_(const T &default_value={}) const {
-        static_assert(not std::is_same_v<T, void>);
+        static_assert(not std::is_same_v<T, void>, "Must explicitly specify type (template parameter), or use default_value.");
 
-        if(is_null())
-            return default_value;
-
-        if constexpr (std::is_integral_v<T>)
+        if constexpr (std::is_floating_point_v<T> || std::is_integral_v<T>)
         {
-            if(get_type() != TYPE_INTEGER)
-                return default_value;
-            return static_cast<T>(get_integer_value());
-        }
-        else if constexpr (std::is_floating_point_v<T>)
-        {
-            if(get_type() != TYPE_DOUBLE)
-                return default_value;
-            return static_cast<T>(get_double_value());
+            if(is_double())
+                return static_cast<T>(get_double_value());
+            if(is_integer())
+                return static_cast<T>(get_integer_value());
         }
         else if constexpr (std::is_same_v<bool, T>)
         {
-            if(get_type() != TYPE_FALSE && get_type() != TYPE_TRUE)
-                return default_value;
-            return get_boolean_value();
+            if(is_boolean())
+                return get_boolean_value();
         }
         else if constexpr (std::is_same_v<T, std::string>)
         {
-            if(get_type() != TYPE_STRING)
-                return default_value;
-            return as_string();
+            if(is_string())
+                return as_string();
         }
-        SAJSON_UNREACHABLE();
+
+        return default_value;
     }
 
     inline value operator [] (size_t index) const {
