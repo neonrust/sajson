@@ -544,7 +544,7 @@ public:
     }
 
     template<typename T>
-    T get_value(const T &default_value={}) const {
+    T as_(const T &default_value={}) const {
         if(is_null())
             return default_value;
 
@@ -841,7 +841,7 @@ private:
     using value::get_string_length;
     using value::as_array;
     using value::as_object;
-    using value::get_value;
+    using value::as_;
     using value::get_array_element;
 
 private:
@@ -888,7 +888,7 @@ private:
     using value::get_string_length;
     using value::as_array;
     using value::as_object;
-    using value::get_value;
+    using value::as_;
     using value::get_value_of_key;
     using value::get_object_value;
     using value::find_object_key;

@@ -1129,7 +1129,7 @@ SUITE(typed_values) {
         assert(success(document));
         const value& root = document.get_root();
         const auto arr = root.as_array();
-        CHECK_EQUAL(arr[0].get_value<int>(), 42);
+        CHECK_EQUAL(arr[0].as_<int>(), 42);
     }
 
     TEST(object_indexing) {
@@ -1137,7 +1137,7 @@ SUITE(typed_values) {
         assert(success(document));
         const value& root = document.get_root();
         const auto obj = root.as_object();
-        CHECK_EQUAL(obj["a"].get_value<int>(), 42);
+        CHECK_EQUAL(obj["a"].as_<int>(), 42);
     }
 
     TEST(array_iterator) {
@@ -1172,9 +1172,13 @@ SUITE(defaulted_value) {
         const auto& document = sajson::parse(sajson::single_allocation(), "{\"a\":42,\"b\":13}");
         assert(success(document));
         const value& root = document.get_root();
-        int value = root["a"].get_value<int>(99);
+        int value = root["a"].as_<int>();
         CHECK_EQUAL(value, 42);
-        value = root["does-not-exist"].get_value<int>(99);
+        value = root["a"].as_<int>(99);
+        CHECK_EQUAL(value, 42);
+        value = root["does-not-exist"].as_<int>();
+        CHECK_EQUAL(value, 0);
+        value = root["does-not-exist"].as_<int>(99);
         CHECK_EQUAL(value, 99);
     }
 }
