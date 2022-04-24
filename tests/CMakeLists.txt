@@ -12,6 +12,7 @@ FetchContent_MakeAvailable(utpp)
 
 set(sources
 	test.cpp
+	../include/sajson.h
 )
 
 

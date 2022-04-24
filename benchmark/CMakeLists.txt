@@ -1,4 +1,7 @@
-add_executable(benchmark benchmark.cpp)
+add_executable(benchmark
+	benchmark.cpp
+	../include/sajson.h
+)
 
 target_include_directories(benchmark PRIVATE ../include/)
 

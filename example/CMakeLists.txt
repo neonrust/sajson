@@ -1,4 +1,7 @@
-add_executable(main main.cpp)
+add_executable(main
+	main.cpp
+	../include/sajson.h
+)
 
 target_include_directories(main PRIVATE ../include/)
 
