@@ -896,12 +896,12 @@ private:
         : value(tag::array, payload_, text_) {}
 };
 
-object value::as_object() const {
+inline object value::as_object() const {
     assert_tag(tag::object);
     return object(payload, text);
 }
 
-array value::as_array() const {
+inline array value::as_array() const {
     assert_tag(tag::array);
     return array(payload, text);
 }
