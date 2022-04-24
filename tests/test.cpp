@@ -789,6 +789,14 @@ SUITE(objects) {
         const size_t index_prefix = root.find_object_key("prefix");
         CHECK_EQUAL(1U, index_prefix);
     }
+
+    TEST(has_key) {
+        const auto& document = sajson::parse(sajson::single_allocation(), "{\"a\":42,\"b\":13}");
+        assert(success(document));
+        const value& root = document.get_root();
+        CHECK(root.has_key("a"sv));
+        CHECK( ! root.has_key("does-not-exist"sv));
+    }
 }
 
 SUITE(errors) {

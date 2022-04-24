@@ -584,12 +584,10 @@ public:
         using namespace internal;
         assert_tag(tag::object);
         size_t length = get_length();
-        const object_key_record* start
-            = reinterpret_cast<const object_key_record*>(payload + 1);
-        const object_key_record* end = start + length;
+        const auto* start = reinterpret_cast<const object_key_record*>(payload + 1);
+        const auto* end = start + length;
         if (SAJSON_UNLIKELY(should_binary_search(length))) {
-            const object_key_record* i = std::lower_bound(
-                start, end, key, object_key_comparator(text));
+            const object_key_record* i = std::lower_bound( start, end, key, object_key_comparator(text));
             if (i != end && i->match(text, key)) {
                 return static_cast<size_t>(i - start);
             }
@@ -601,6 +599,10 @@ public:
             }
         }
         return length;
+    }
+
+    bool has_key(std::string_view key) const {
+        return find_object_key(key) != get_length();
     }
 
     /// If a numeric value was parsed as a 32-bit integer, returns it.
@@ -885,6 +887,7 @@ private:
     using value::get_value_of_key;
     using value::get_object_value;
     using value::find_object_key;
+    using value::has_key;
     using value::get_object_key;
 
 private:
