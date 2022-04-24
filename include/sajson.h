@@ -543,8 +543,10 @@ public:
         }
     }
 
-    template<typename T>
+    template<typename T=void>
     T as_(const T &default_value={}) const {
+        static_assert(not std::is_same_v<T, void>);
+
         if(is_null())
             return default_value;
 
@@ -902,7 +904,6 @@ private:
     explicit array(const size_t* payload_, const char* text_)
         : value(tag::array, payload_, text_) {}
 };
-
 
 object value::as_object() const {
     assert_tag(tag::object);
