@@ -598,7 +598,7 @@ public:
             const object_key_record* i = std::lower_bound(
                 start, end, key, object_key_comparator(text));
             if (i != end && i->match(text, key)) {
-                return i - start;
+                return static_cast<size_t>(i - start);
             }
         } else {
             for (size_t i = 0; i < length; ++i) {
@@ -1223,7 +1223,7 @@ public:
 
         void reset(size_t new_top) { stack_top = stack_bottom + new_top; }
 
-        size_t get_size() { return stack_top - stack_bottom; }
+        size_t get_size() { return static_cast<size_t>(stack_top - stack_bottom); }
 
         size_t* get_top() { return stack_top; }
 
@@ -1287,7 +1287,7 @@ public:
             return stack_head(structure);
         }
 
-        size_t get_write_offset() { return structure_end - write_cursor; }
+        size_t get_write_offset() { return static_cast<size_t>(structure_end - write_cursor); }
 
         size_t* get_write_pointer_of(size_t v) { return structure_end - v; }
 
@@ -1417,7 +1417,7 @@ public:
 
         void reset(size_t new_top) { stack_top = stack_bottom + new_top; }
 
-        size_t get_size() { return stack_top - stack_bottom; }
+        size_t get_size() { return static_cast<size_t>(stack_top - stack_bottom); }
 
         size_t* get_top() { return stack_top; }
 
@@ -1447,8 +1447,8 @@ public:
                 return true;
             }
 
-            size_t current_size = stack_top - stack_bottom;
-            size_t old_capacity = stack_limit - stack_bottom;
+            size_t current_size = static_cast<size_t>(stack_top - stack_bottom);
+            size_t old_capacity = static_cast<size_t>(stack_limit - stack_bottom);
             size_t new_capacity = old_capacity * 2;
             while (new_capacity < amount + current_size) {
                 new_capacity *= 2;
@@ -1513,7 +1513,7 @@ public:
             return stack_head(initial_stack_capacity, success);
         }
 
-        size_t get_write_offset() { return ast_buffer_top - ast_write_head; }
+        size_t get_write_offset() { return static_cast<size_t>(ast_buffer_top - ast_write_head); }
 
         size_t* get_write_pointer_of(size_t v) { return ast_buffer_top - v; }
 
@@ -1545,9 +1545,9 @@ public:
                                   ast_write_head - ast_buffer_bottom))) {
                 return true;
             }
-            size_t current_capacity = ast_buffer_top - ast_buffer_bottom;
+            size_t current_capacity = static_cast<size_t>(ast_buffer_top - ast_buffer_bottom);
 
-            size_t current_size = ast_buffer_top - ast_write_head;
+            size_t current_size = static_cast<size_t>(ast_buffer_top - ast_write_head);
             size_t new_capacity = current_capacity * 2;
             while (new_capacity < amount + current_size) {
                 new_capacity *= 2;
@@ -1664,7 +1664,7 @@ public:
         }
 
         size_t get_size() {
-            return source_allocator->stack_top - source_allocator->structure;
+            return static_cast<size_t>(source_allocator->stack_top - source_allocator->structure);
         }
 
         size_t* get_top() { return source_allocator->stack_top; }
@@ -1713,7 +1713,7 @@ public:
             return stack_head(this);
         }
 
-        size_t get_write_offset() { return structure_end - write_cursor; }
+        size_t get_write_offset() { return static_cast<size_t>(structure_end - write_cursor); }
 
         size_t* get_write_pointer_of(size_t v) { return structure_end - v; }
 
@@ -2304,7 +2304,7 @@ private:
                     make_error(p, ERROR_UNEXPECTED_END), tag::null);
             }
         } else {
-            unsigned char c = *p;
+            unsigned char c = static_cast<unsigned char>(*p);
             if (c < '0' || c > '9') {
                 return std::make_pair(
                     make_error(p, ERROR_INVALID_NUMBER), tag::null);
@@ -2330,7 +2330,7 @@ private:
                     u = 10 * u + digit;
                 }
 
-                c = *p;
+                c = static_cast<unsigned char>(*p);
             } while (c >= '0' && c <= '9');
         }
 
@@ -2475,7 +2475,7 @@ private:
     bool install_array(size_t* array_base, size_t* array_end) {
         using namespace sajson::internal;
 
-        const size_t length = array_end - array_base;
+        const size_t length = static_cast<size_t>(array_end - array_base);
         bool success;
         size_t* const new_base = allocator.reserve(length + 1, &success);
         if (SAJSON_UNLIKELY(!success)) {
@@ -2489,7 +2489,7 @@ private:
             tag element_type = get_element_tag(element);
             size_t element_value = get_element_value(element);
             size_t* element_ptr = structure_end - element_value;
-            *--out = make_element(element_type, element_ptr - new_base);
+            *--out = make_element(element_type, static_cast<size_t>(element_ptr - new_base));
         }
         *--out = length;
         return true;
@@ -2499,7 +2499,7 @@ private:
         using namespace internal;
 
         assert((object_end - object_base) % 3 == 0);
-        const size_t length_times_3 = object_end - object_base;
+        const size_t length_times_3 = static_cast<size_t>(object_end - object_base);
         const size_t length = length_times_3 / 3;
         if (SAJSON_UNLIKELY(should_binary_search(length))) {
             std::sort(
@@ -2523,7 +2523,7 @@ private:
             size_t element_value = get_element_value(element);
             size_t* element_ptr = structure_end - element_value;
 
-            *--out = make_element(element_type, element_ptr - new_base);
+            *--out = make_element(element_type, static_cast<size_t>(element_ptr - new_base));
             *--out = *--object_end;
             *--out = *--object_end;
         }
@@ -2586,7 +2586,7 @@ private:
         unsigned v = 0;
         int i = 4;
         while (i--) {
-            unsigned char c = *p++;
+            unsigned char c = static_cast<unsigned char>(*p++);
             if (c >= '0' && c <= '9') {
                 c -= '0';
             } else if (c >= 'a' && c <= 'f') {
@@ -2723,58 +2723,58 @@ private:
 
             default:
                 // validate UTF-8
-                unsigned char c0 = p[0];
+                unsigned char c0 = static_cast<unsigned char>(p[0]);
                 if (c0 < 128) {
                     *end++ = *p++;
                 } else if (c0 < 224) {
                     if (SAJSON_UNLIKELY(!has_remaining_characters(p, 2))) {
                         return unexpected_end(p);
                     }
-                    unsigned char c1 = p[1];
+                    unsigned char c1 = static_cast<unsigned char>(p[1]);
                     if (c1 < 128 || c1 >= 192) {
                         return make_error(p + 1, ERROR_INVALID_UTF8);
                     }
-                    end[0] = c0;
-                    end[1] = c1;
+                    end[0] = static_cast<char>(c0);
+                    end[1] = static_cast<char>(c1);
                     end += 2;
                     p += 2;
                 } else if (c0 < 240) {
                     if (SAJSON_UNLIKELY(!has_remaining_characters(p, 3))) {
                         return unexpected_end(p);
                     }
-                    unsigned char c1 = p[1];
+                    unsigned char c1 = static_cast<unsigned char>(p[1]);
                     if (c1 < 128 || c1 >= 192) {
                         return make_error(p + 1, ERROR_INVALID_UTF8);
                     }
-                    unsigned char c2 = p[2];
+                    unsigned char c2 = static_cast<unsigned char>(p[2]);
                     if (c2 < 128 || c2 >= 192) {
                         return make_error(p + 2, ERROR_INVALID_UTF8);
                     }
-                    end[0] = c0;
-                    end[1] = c1;
-                    end[2] = c2;
+                    end[0] = static_cast<char>(c0);
+                    end[1] = static_cast<char>(c1);
+                    end[2] = static_cast<char>(c2);
                     end += 3;
                     p += 3;
                 } else if (c0 < 248) {
                     if (SAJSON_UNLIKELY(!has_remaining_characters(p, 4))) {
                         return unexpected_end(p);
                     }
-                    unsigned char c1 = p[1];
+                    unsigned char c1 = static_cast<unsigned char>(p[1]);
                     if (c1 < 128 || c1 >= 192) {
                         return make_error(p + 1, ERROR_INVALID_UTF8);
                     }
-                    unsigned char c2 = p[2];
+                    unsigned char c2 = static_cast<unsigned char>(p[2]);
                     if (c2 < 128 || c2 >= 192) {
                         return make_error(p + 2, ERROR_INVALID_UTF8);
                     }
-                    unsigned char c3 = p[3];
+                    unsigned char c3 = static_cast<unsigned char>(p[3]);
                     if (c3 < 128 || c3 >= 192) {
                         return make_error(p + 3, ERROR_INVALID_UTF8);
                     }
-                    end[0] = c0;
-                    end[1] = c1;
-                    end[2] = c2;
-                    end[3] = c3;
+                    end[0] = static_cast<char>(c0);
+                    end[1] = static_cast<char>(c1);
+                    end[2] = static_cast<char>(c2);
+                    end[3] = static_cast<char>(c3);
                     end += 4;
                     p += 4;
                 } else {
