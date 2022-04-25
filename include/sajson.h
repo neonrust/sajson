@@ -683,14 +683,12 @@ public:
         return text + payload[0];
     }
 
-#ifndef SAJSON_NO_STD_STRING
     /// Returns a string's value as a std::string.
     /// Only legal if get_type() is TYPE_STRING.
-    std::string as_string() const {
+    std::string_view as_string() const {
         assert_tag(tag::string);
-        return std::string(text + payload[0], text + payload[1]);
+        return std::string_view(text + payload[0], payload[1] - payload[0]);
     }
-#endif
 
     /// \cond INTERNAL
     const size_t* _internal_get_payload() const { return payload; }
@@ -1067,13 +1065,11 @@ public:
     /// failed.
     size_t get_error_column() const { return error_column; }
 
-#ifndef SAJSON_NO_STD_STRING
     /// If not is_valid(), returns a std::string indicating why the parse
     /// failed.
     std::string get_error_message_as_string() const {
         return formatted_error_message;
     }
-#endif
 
     /// If not is_valid(), returns a null-terminated C string indicating why the
     /// parse failed.
