@@ -559,7 +559,7 @@ public:
             if(is_boolean())
                 return get_boolean_value();
         }
-        else if constexpr (std::is_same_v<T, std::string>)
+        else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>)
         {
             if(is_string())
                 return as_string();
