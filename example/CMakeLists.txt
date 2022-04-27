@@ -18,7 +18,7 @@ set_target_properties(zeroalloc PROPERTIES
 )
 
 
-add_executable(dump dump.cpp)
+add_executable(dump dump.cpp ../include/sajson_dump.h)
 
 target_include_directories(dump PRIVATE ../include/)
 
