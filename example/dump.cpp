@@ -51,14 +51,14 @@ int main(int argc, char *argv[]) {
 
     auto root = document.get_root();
 
-    //auto s = sajson::to_string(root, true);
-
     auto t2 = std::chrono::high_resolution_clock::now();
-    sajson::write(stdout, root, true);
+    auto s = sajson::to_string(root, true);
+    fwrite(s.c_str(), 1, s.size(), stdout);
+    //sajson::write(stdout, root, true);
     auto t3 = std::chrono::high_resolution_clock::now();
 
-    fprintf(stderr, "deserialization time: %.3f ms\n", static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count())/1e3);
-    fprintf(stderr, "serialization time: %.3f ms\n", static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count())/1e3);
+    fprintf(stderr, "parse: %.3f ms\n", static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count())/1e3);
+    fprintf(stderr, "write: %.3f ms\n", static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count())/1e3);
 
     return 0;
 }
