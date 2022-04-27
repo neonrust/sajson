@@ -470,11 +470,11 @@ public:
         return value_tag == tag::null;
     }
 
-    // Returns an object-typed value.
-    // Only legal if get_type() is TYPE_OBJECT.
+    /// Returns an object-typed value.
+    /// Only legal if get_type() is TYPE_OBJECT.
     object as_object() const;
-    // Returns an array-typed value.
-    // Only legal if get_type() is TYPE_ARRAY.
+    /// Returns an array-typed value.
+    /// Only legal if get_type() is TYPE_ARRAY.
     array as_array() const;
 
     bool get_boolean_value() const {
