@@ -58,7 +58,7 @@ template<typename O>
 inline void ind(O &o, int n) {
     static const char i_str[] = "  ";
 
-    while(n-- >= 0) {
+    while(n-- > 0) {
         o += i_str;
     }
 }
