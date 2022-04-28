@@ -102,8 +102,7 @@ inline void dump_array(O &o, const sajson::array &arr, int indent) {
     if(indent != -1)
         ++indent;
 
-    size_t idx = 0;
-    for(const auto elem: arr)
+    for(const auto [idx, elem]: arr)
     {
         if(indent != 0)
             o += '\n';
@@ -113,8 +112,7 @@ inline void dump_array(O &o, const sajson::array &arr, int indent) {
         // output the array element
         dump(o, elem, indent);
 
-        ++idx;
-        if(idx < arr.get_length())
+        if(idx + 1 < arr.get_length())
             o += ',';
     }
 
