@@ -569,6 +569,9 @@ public:
     }
 
     inline value operator [] (size_t index) const {
+        if(is_object())
+            return get_object_value(index);
+
         return get_array_element(index);
     }
 
@@ -852,8 +855,8 @@ public:
     class const_iterator : public const_iterator_base<array>
     {
     public:
-        value_type operator * () const {
-            return container.get_array_element(index);
+        std::pair<size_t, value_type> operator * () const {
+            return { index, container.get_array_element(index) };
         }
 
     private:

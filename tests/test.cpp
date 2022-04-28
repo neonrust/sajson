@@ -1153,12 +1153,10 @@ SUITE(typed_values) {
         assert(success(document));
         const value& root = document.get_root();
         const auto arr = root.as_array();
-        size_t idx { 0 };
-        for(auto elem: arr)
+        for(auto [idx, elem]: arr)
         {
             CHECK(elem.is_integer());
             CHECK_EQUAL(elem.get_integer_value(), idx == 0? 42: 13);
-            ++idx;
         }
     }
 
