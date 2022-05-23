@@ -35,22 +35,45 @@ using namespace std::literals;
  */
 struct FileOut
 {
-    inline FileOut(std::FILE *f) : _fp(f), _size(0) {}
+    inline FileOut(std::FILE *f) : _fp(f), _size(0) {
+        _buf.reserve(1ul << 16);
+    }
+
+    inline ~FileOut() {
+        _flush();
+    }
+
     inline FileOut &operator += (std::string_view s) {
-        _size += std::fwrite(s.data(), 1, s.size(), _fp);
+        if(_buf.size() + s.size() > _buf.capacity())
+            _flush();
+        if(s.size() > _buf.capacity())
+            _size += std::fwrite(s.data(), 1, s.size(), _fp);
+        else
+            _buf += s;
         return *this;
     }
+
     inline FileOut &operator += (char c) {
-        _size += std::fwrite(&c, 1, 1, _fp);
+        if(_buf.size() + 1 > _buf.capacity())
+            _flush();
+        _buf += c;
         return *this;
     }
+
     inline size_t size() const {
         return _size;
     }
 
 private:
+    inline void _flush() {
+        _size += std::fwrite(_buf.c_str(), 1, _buf.size(), _fp);
+        _buf.clear();
+    }
+
+private:
     std::FILE *_fp { nullptr };
     size_t _size {0 };
+    std::string _buf;
 };
 
 namespace sajson
