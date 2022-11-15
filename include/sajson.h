@@ -782,7 +782,7 @@ private:
     friend class object;
     friend class array;
 
-    const_iterator_base(const T &cntr, size_t index) : container(cntr), index(index) {}
+    const_iterator_base(const T &cntr, size_t index_) : container(cntr), index(index_) {}
 
     size_t advance_index(difference_type offset) {
         decltype(index) new_index;
@@ -813,8 +813,8 @@ public:
 
     private:
         friend class object;
-        const_iterator(const object &obj, size_t index) :
-            const_iterator_base<object>(obj, index) {}
+        const_iterator(const object &obj, size_t index_) :
+            const_iterator_base<object>(obj, index_) {}
     };
 
     const_iterator begin() const {
@@ -861,8 +861,8 @@ public:
 
     private:
         friend class array;
-        const_iterator(const array &arr, size_t index) :
-            const_iterator_base<array>(arr, index) {}
+        const_iterator(const array &arr, size_t index_) :
+            const_iterator_base<array>(arr, index_) {}
     };
 
     const_iterator begin() const {
@@ -1338,8 +1338,7 @@ public:
 
     /// \cond INTERNAL
 
-    allocator
-    make_allocator(size_t input_document_size_in_bytes, bool* succeeded) const {
+    allocator make_allocator(size_t input_document_size_in_bytes, bool* succeeded) const {
         if (has_existing_buffer) {
             if (existing_buffer_size < input_document_size_in_bytes) {
                 *succeeded = false;
